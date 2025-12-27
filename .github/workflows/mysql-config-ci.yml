@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - "mysql-configs/**"
-      - ".github/workflows/ci.yml"
+      - ".github/workflows/mysql-config-ci.yml"
 
 jobs:
   deploy-mysql-config:
