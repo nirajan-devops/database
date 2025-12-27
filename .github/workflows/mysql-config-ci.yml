@@ -36,6 +36,7 @@ jobs:
         username: ${{ secrets.MYSQL_SSH_USER }}
         key: ${{ secrets.MYSQL_SSH_KEY }}
         script: |
+          ls -R /tmp/mysql-configs   # debug
           sudo cp /tmp/mysql-configs/base-my.cnf /etc/mysql/custom/base.cnf
           sudo cp /tmp/mysql-configs/dev/my.cnf /etc/mysql/custom/env.cnf
           sudo systemctl restart mysql
