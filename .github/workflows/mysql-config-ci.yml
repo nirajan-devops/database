@@ -1,0 +1,40 @@
+name: MySQL Config CI
+
+on:
+  push:
+    paths:
+      - "mysql-configs/**"
+
+jobs:
+  deploy-mysql-config:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Validate MySQL config syntax
+      run: |
+        sudo apt update
+        sudo apt install -y mysql-server
+        mysqld --no-defaults --help > /dev/null
+
+    - name: Copy config to MySQL server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.MYSQL_SERVER_IP }}
+        username: ${{ secrets.MYSQL_SSH_USER }}
+        key: ${{ secrets.MYSQL_SSH_KEY }}
+        source: "mysql-configs/"
+        target: "/tmp/mysql-configs"
+
+    - name: Apply config & restart MySQL
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.MYSQL_SERVER_IP }}
+        username: ${{ secrets.MYSQL_SSH_USER }}
+        key: ${{ secrets.MYSQL_SSH_KEY }}
+        script: |
+          sudo cp /tmp/mysql-configs/base-my.cnf /etc/mysql/custom/base.cnf
+          sudo cp /tmp/mysql-configs/dev/my.cnf /etc/mysql/custom/env.cnf
+          sudo systemctl restart mysql
