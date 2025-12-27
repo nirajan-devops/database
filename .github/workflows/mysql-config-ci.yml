@@ -4,39 +4,57 @@ on:
   push:
     paths:
       - "mysql-configs/**"
-      - ".github/workflows/mysql-config-ci.yml"
+      - ".github/workflows/ci.yml"
 
 jobs:
   deploy-mysql-config:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      # 1️⃣ Checkout repository (MANDATORY)
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Validate MySQL config syntax
-      run: |
-        sudo apt update
-        sudo apt install -y mysql-server
-        mysqld --no-defaults --help > /dev/null
+      # 2️⃣ Verify files exist on GitHub runner
+      - name: Verify MySQL config files
+        run: |
+          echo "Listing mysql-configs directory:"
+          ls -R mysql-configs
 
-    - name: Copy config to MySQL server
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.MYSQL_SERVER_IP }}
-        username: ${{ secrets.MYSQL_SSH_USER }}
-        key: ${{ secrets.MYSQL_SSH_KEY }}
-        source: "mysql-configs/"
-        target: "/tmp/mysql-configs"
+      # 3️⃣ Copy mysql-configs folder to EC2
+      - name: Copy MySQL configs to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.MYSQL_SERVER_IP }}
+          username: ${{ secrets.MYSQL_SSH_USER }}
+          key: ${{ secrets.MYSQL_SSH_KEY }}
+          source: "mysql-configs"
+          target: "/tmp"
 
-    - name: Apply config & restart MySQL
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.MYSQL_SERVER_IP }}
-        username: ${{ secrets.MYSQL_SSH_USER }}
-        key: ${{ secrets.MYSQL_SSH_KEY }}
-        script: |
-          ls -R /tmp/mysql-configs   # debug
-          sudo cp /tmp/mysql-configs/base-my.cnf /etc/mysql/custom/base.cnf
-          sudo cp /tmp/mysql-configs/dev/my.cnf /etc/mysql/custom/env.cnf
-          sudo systemctl restart mysql
+      # 4️⃣ Verify files on EC2 (IMPORTANT DEBUG STEP)
+      - name: Verify files on EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.MYSQL_SERVER_IP }}
+          username: ${{ secrets.MYSQL_SSH_USER }}
+          key: ${{ secrets.MYSQL_SSH_KEY }}
+          script: |
+            echo "Listing /tmp/mysql-configs on EC2:"
+            ls -R /tmp/mysql-configs
+
+      # 5️⃣ Apply MySQL configuration
+      - name: Apply MySQL configuration
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.MYSQL_SERVER_IP }}
+          username: ${{ secrets.MYSQL_SSH_USER }}
+          key: ${{ secrets.MYSQL_SSH_KEY }}
+          script: |
+            sudo mkdir -p /etc/mysql/custom
+
+            sudo cp /tmp/mysql-configs/base-my.cnf /etc/mysql/custom/base-my.cnf
+            sudo cp /tmp/mysql-configs/dev/my.cnf /etc/mysql/custom/dev-my.cnf
+
+            sudo systemctl restart mysql
+
+            echo "✅ MySQL configuration applied successfully"
