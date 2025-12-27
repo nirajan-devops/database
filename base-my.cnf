@@ -1,0 +1,23 @@
+
+[mysqld]
+# Common behavior
+sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION
+default-storage-engine=InnoDB
+
+# Charset standardization
+character-set-server=utf8mb4
+collation-server=utf8mb4_unicode_ci
+
+# Security
+skip-name-resolve
+local-infile=0
+
+# Logging format
+log-error=/var/log/mysql/error.log
+slow_query_log=ON
+long_query_time=2
+
+# Connections
+max_allowed_packet=64M
+wait_timeout=600
+interactive_timeout=600
